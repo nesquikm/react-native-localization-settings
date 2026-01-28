@@ -1,5 +1,6 @@
 package com.localizationsettings
 
+import android.app.LocaleManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -41,9 +42,12 @@ class LocalizationSettingsModule internal constructor(context: ReactApplicationC
   private fun getCurrentLanguage(): String? {
     // If API version is >= 33, then use per-app language settings
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      val currentLocaleName = if (!AppCompatDelegate.getApplicationLocales().isEmpty) {
-        // get per-app language
-        AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag()
+      // Use LocaleManager directly to read per-app language set in Android Settings
+      val localeManager = reactApplicationContext.getSystemService(LocaleManager::class.java)
+      val appLocales = localeManager?.applicationLocales
+      val currentLocaleName = if (appLocales != null && !appLocales.isEmpty) {
+        // get per-app language from system LocaleManager
+        appLocales[0]?.toLanguageTag()
       } else {
         // Fallback to the default System Locale
         Locale.getDefault().toLanguageTag()
