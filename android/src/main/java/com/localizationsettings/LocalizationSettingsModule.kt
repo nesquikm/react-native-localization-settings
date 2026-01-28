@@ -4,6 +4,7 @@ import android.app.LocaleManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.LocaleList
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.facebook.react.bridge.Promise
@@ -45,14 +46,11 @@ class LocalizationSettingsModule internal constructor(context: ReactApplicationC
       // Use LocaleManager directly to read per-app language set in Android Settings
       val localeManager = reactApplicationContext.getSystemService(LocaleManager::class.java)
       val appLocales = localeManager?.applicationLocales
-      val currentLocaleName = if (appLocales != null && !appLocales.isEmpty) {
-        // get per-app language from system LocaleManager
+      return if (appLocales != null && !appLocales.isEmpty) {
         appLocales[0]?.toLanguageTag()
       } else {
-        // Fallback to the default System Locale
         Locale.getDefault().toLanguageTag()
       }
-      return currentLocaleName
     }
     // if API is < 33, then use SharedPreferences with fallback to default System Locale
     if (getPreferences().getString("languageFrom", null) == Locale.getDefault().language) {
@@ -72,8 +70,11 @@ class LocalizationSettingsModule internal constructor(context: ReactApplicationC
   private fun setCurrentLanguage(language: String) {
     // If API version is >= 33, then use per-app language settings
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      val localeList = LocaleListCompat.forLanguageTags(getLanguageTag(language))
-      AppCompatDelegate.setApplicationLocales(localeList)
+      // Use LocaleManager directly to ensure sync with Android Settings
+      val localeManager = reactApplicationContext.getSystemService(LocaleManager::class.java)
+      val languageTag = getLanguageTag(language)
+      val localeList = LocaleList.forLanguageTags(languageTag)
+      localeManager?.applicationLocales = localeList
     } else {
       // if API is < 33, then set SharedPreferences language
       val editor = getEditor();
